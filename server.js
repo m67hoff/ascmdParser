@@ -115,7 +115,7 @@ var cmdValue = ''
 program
   .description('execute ascmd with the given cmd (default: as_ls / ) on remote host (ssh) and parse the output\nw/o any options it just calls: "as_ls /" on demo.asperasoft.com')
   .option('--host <string>', 'hostname')
-  .option('--port <int>', 'port', parseInt, 33001)
+  .option('--port <int>', 'port', parseFloat, 33001)
   .option('--user <string>', 'username')
   .option('--pass <string>', 'password')
   .option('-v, --verbose', 'log verbose')
@@ -138,7 +138,7 @@ if (program.pass) {
   config.ssh.pass = program.pass
 }
 if (program.port) {
-  config.ssh.port = program.port
+  config.ssh.port = Math.floor(program.port)
 }
 if (program.json) {
   // try {
@@ -182,58 +182,47 @@ function _callssh(config) {
 }
 
 function _parse(data_buffer) {
-  var output = {}
-  output.files = []
-
+  var output = []
   var results = bufList.parse(data_buffer).fieldList
   results.forEach(field => {
-    // console.log(field)
     field['type'] = result_enum[field.index].name
     switch (field.type) {
       case 'info':
       case 'error':
-        praseItems(field, field.type)
-        output[field.type] = field
-        break
       case 'file':
-        praseItems(field, 'file')
-        output.files.push(field)
+        praseItems(field)
+        output.push(field)
         break
       case 'dir':
         var files = bufList.parse(field.data).fieldList
         files.forEach(file => {
           file['type'] = 'file'
-          praseItems(file, 'file')
-          output.files.push(file)
+          praseItems(file)
+          output.push(file)
         })
         field.items = files
         break
       default:
-        output[field.type] = 'Not yet supported!'
+          output.push( {type: field.type, error: 'Not supported by ascmd parser at the moment'})
         break
     }
   })
 
   log.verbose('parse', require('util').inspect(results, { depth: null, colors: true }))
-  delete output.info.data; delete output.info.len; delete output.info.index
-  // delete output.error.data; delete output.error.len; delete output.error.index
-  output.files.forEach(f => { delete f.data; delete f.len; delete f.index })
-  log.verbose('output', require('util').inspect(output, { depth: null, colors: true }))
-  log.info('output', 'info: ' + output.info.platform)
-  log.info('output', 'files: ' + output.files.length)
-  log.info('output', 'error: ' + (typeof output.error === 'undefined' ? '' : output.error.errstr))
+  output.forEach(i => { delete i.data; delete i.len; delete i.index })
+  log.info('output', require('util').inspect(output, { depth: null, colors: true }))
 }
 
-function praseItems(buf, type) {
+function praseItems(buf) {
+  var b_type = buf.type
   var items = bufList.parse(buf.data).fieldList
-  log.verbose('parse ' + type, require('util').inspect(items, { depth: null, colors: true }))
+  log.verbose('parse ' + b_type, require('util').inspect(items, { depth: null, colors: true }))
   items.forEach(i => {
-    i['type'] = parse_enum[type][i.index].name
-    var p_type = parse_enum[type][i.index].type
-    i['value'] = itemParser[p_type].parse(i.data).val
-    buf[i.type] = i.value
+    var i_name = parse_enum[b_type][i.index].name
+    var p_type = parse_enum[b_type][i.index].type
+    var i_value = itemParser[p_type].parse(i.data).val
+    buf[i_name] = i_value
   })
-  // buf.items = items
 }
 
 function json2s(obj) { return JSON.stringify(obj, null, 2) } // format JSON payload for log
