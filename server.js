@@ -97,7 +97,7 @@ const config = {
     host: 'demo.asperasoft.com',
     port: 33001,
     username: 'aspera',
-    password: 'demoaspera',
+    password: 'demoaspera'
   },
   cmd: 'as_ls /',
   loglevel: 'info'
@@ -144,7 +144,7 @@ if (program.json) {
   // try {
   const configjson = JSON.parse(program.json)
   Object.assign(config, configjson)
-  //}
+  // }
   // catch (err) {
   //   log.error('main', 'error parsing JSON: ' + program.json)
   //   process.exit(1)
@@ -161,9 +161,9 @@ if (program.verbose) {
 
 log.notice('main', 'config:', config)
 
-_callssh(config)
+callssh(config)
 
-function _callssh(config) {
+function callssh(config) {
   const ssh = new SSH2Promise(config.ssh)
   ssh.spawn('ascmd').then(
     (socket) => {
@@ -173,7 +173,7 @@ function _callssh(config) {
         log.verbose('ssh', 'ssh Exit')
         log.verbose('ssh', data_buffer)
         ssh.close()
-        _parse(data_buffer)
+        parseList(data_buffer)
       })
     }, (err) => {
       log.error('ssh', err)
@@ -181,7 +181,7 @@ function _callssh(config) {
   )
 }
 
-function _parse(data_buffer) {
+function parseList(data_buffer) {
   var output = []
   var results = bufList.parse(data_buffer).fieldList
   results.forEach(field => {
@@ -203,7 +203,7 @@ function _parse(data_buffer) {
         field.items = files
         break
       default:
-          output.push( {type: field.type, error: 'Not supported by ascmd parser at the moment'})
+        output.push({ type: field.type, error: 'Not supported by ascmd parser at the moment' })
         break
     }
   })
